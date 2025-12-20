@@ -285,8 +285,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let maxLatency = max(validLatencies.max() ?? 100, 100) // At least 100ms scale
         let minLatency = validLatencies.min() ?? 0
 
-        // Choose color based on connection status - white for no connection (visible against red)
-        let lineColor = hasConnection ? NSColor.systemGray.withAlphaComponent(0.3) : NSColor.white.withAlphaComponent(0.5)
+        // Choose color based on connection status - brighter for dark background
+        let lineColor = hasConnection ? NSColor.lightGray.withAlphaComponent(0.7) : NSColor.white.withAlphaComponent(0.5)
 
         // Draw sparkline with gaps for disconnections
         let pointSpacing = width / CGFloat(max(latencyHistory.count - 1, 1))
@@ -351,8 +351,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         composite.lockFocus()
 
-        // Draw red background if no connection
-        if !hasConnection {
+        // Draw semi-transparent dark background for better visibility
+        if hasConnection {
+            NSColor.black.withAlphaComponent(0.65).setFill()
+            NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: 3, yRadius: 3).fill()
+        } else {
+            // Draw red background if no connection
             NSColor.red.setFill()
             NSBezierPath(roundedRect: NSRect(origin: .zero, size: size), xRadius: 3, yRadius: 3).fill()
         }
