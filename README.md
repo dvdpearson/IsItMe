@@ -4,7 +4,9 @@ A macOS menu bar app that monitors network latency with a live sparkline graph.
 
 *Is it me, or is the internet slow?*
 
-![Screenshot](screenshot.png)
+![Menu Bar](menubar.png)
+
+![Menu](menu.png)
 
 ## What it does
 
@@ -19,9 +21,9 @@ Shows ping latency in your menu bar with:
 Requires Xcode 15+ and macOS 12+
 
 ```bash
-git clone https://github.com/yourusername/LatencyMonitor.git
-cd LatencyMonitor
-open LatencyMonitor.xcodeproj
+git clone https://github.com/yourusername/IsItMe.git
+cd IsItMe
+open IsItMe.xcodeproj
 ```
 
 Build and run (⌘R)
