@@ -21,7 +21,7 @@ Shows ping latency in your menu bar with:
 Requires Xcode 15+ and macOS 12+
 
 ```bash
-git clone https://github.com/yourusername/IsItMe.git
+git clone https://github.com/dvdpearson/IsItMe.git
 cd IsItMe
 open IsItMe.xcodeproj
 ```
@@ -32,6 +32,7 @@ Build and run (⌘R)
 
 - Ping any host (default: 1.1.1.1)
 - Adjustable interval (0.5s, 1s, 2s, 5s)
+- Automatic update checking
 - Launch at login option
 - Sparkline shows history with gaps for outages
 
@@ -41,6 +42,7 @@ Click the menu bar icon to:
 - View detailed stats
 - Change ping target
 - Adjust ping interval
+- Check for updates
 - Toggle launch at login
 
 Move the icon: Hold ⌘ and drag
