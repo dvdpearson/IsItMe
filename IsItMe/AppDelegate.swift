@@ -126,7 +126,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Version info (clickable to open releases)
         let versionItem = NSMenuItem(
-            title: "Version \(getCurrentVersion() ?? "1.0")",
+            title: "Version v\(getCurrentVersion() ?? "1.0")",
             action: #selector(openReleasePage),
             keyEquivalent: ""
         )
@@ -543,10 +543,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if updateInfo.isUpdateAvailable {
                 versionItem?.title = "Update Available (v\(updateInfo.latestVersion))"
             } else {
-                versionItem?.title = "Version \(version) (up to date)"
+                versionItem?.title = "Version v\(version) (up to date)"
             }
         } else {
-            versionItem?.title = "Version \(version)"
+            versionItem?.title = "Version v\(version)"
         }
     }
 }
