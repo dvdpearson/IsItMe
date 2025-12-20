@@ -1,0 +1,36 @@
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+/*.gcno
+**/xcshareddata/WorkspaceSettings.xcsettings
+
+# Build products
+build/
+DerivedData/
+*.app
+*.zip
+
+# macOS
+.DS_Store
+*.swp
+*~.nib
+*.perspectivev3
+*.pbxuser
+*.mode1v3
+*.mode2v3
+
+# Debugging
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
+.build/
+Packages/
+Package.pins
+Package.resolved
+*.xcworkspace
+
+# User-specific
+xcuserdata/
