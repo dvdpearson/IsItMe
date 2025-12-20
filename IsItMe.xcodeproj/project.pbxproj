@@ -12,6 +12,7 @@
 		1A000003000000000000001 /* PingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000003000000000000001 /* PingService.swift */; };
 		1A000004000000000000001 /* LatencyStats.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000004000000000000001 /* LatencyStats.swift */; };
 		1A000005000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A000005000000000000001 /* Assets.xcassets */; };
+		1A000007000000000000001 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A000007000000000000001 /* UpdateChecker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +22,7 @@
 		2A000004000000000000001 /* LatencyStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatencyStats.swift; sourceTree = "<group>"; };
 		2A000005000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2A000006000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		2A000007000000000000001 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 		3A000001000000000000001 /* IsItMe.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IsItMe.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -50,6 +52,7 @@
 				2A000002000000000000001 /* AppDelegate.swift */,
 				2A000003000000000000001 /* PingService.swift */,
 				2A000004000000000000001 /* LatencyStats.swift */,
+				2A000007000000000000001 /* UpdateChecker.swift */,
 				2A000005000000000000001 /* Assets.xcassets */,
 				2A000006000000000000001 /* Info.plist */,
 			);
@@ -137,6 +140,7 @@
 				1A000002000000000000001 /* AppDelegate.swift in Sources */,
 				1A000003000000000000001 /* PingService.swift in Sources */,
 				1A000004000000000000001 /* LatencyStats.swift in Sources */,
+				1A000007000000000000001 /* UpdateChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

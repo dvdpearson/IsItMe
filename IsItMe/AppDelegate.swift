@@ -8,6 +8,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var autoStartMenuItem: NSMenuItem!
     private var latencyHistory: [Double?] = [] // Store last 2 minutes of readings
     private let maxHistoryCount = 120 // 2 minutes at 1 second intervals
+    private var updateCheckTimer: Timer?
+    private var lastUpdateInfo: UpdateChecker.UpdateInfo?
+    private let updateCheckInterval: TimeInterval = 4 * 60 * 60 // 4 hours
     private var pingTarget: String {
         get { UserDefaults.standard.string(forKey: "PingTarget") ?? "1.1.1.1" }
         set { UserDefaults.standard.set(newValue, forKey: "PingTarget") }
@@ -15,6 +18,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pingInterval: TimeInterval {
         get { UserDefaults.standard.double(forKey: "PingInterval") != 0 ? UserDefaults.standard.double(forKey: "PingInterval") : 1.0 }
         set { UserDefaults.standard.set(newValue, forKey: "PingInterval") }
+    }
+    private var lastUpdateCheckTime: Date? {
+        get { UserDefaults.standard.object(forKey: "LastUpdateCheckTime") as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: "LastUpdateCheckTime") }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -33,6 +40,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         createMenu()
         startPinging()
+        checkForUpdatesOnLaunch()
+        startUpdateCheckTimer()
     }
 
     private func createMenu() {
@@ -112,6 +121,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         pingIntervalItem.submenu = pingIntervalMenu
         menu.addItem(pingIntervalItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        // Version info (clickable to open releases)
+        let versionItem = NSMenuItem(
+            title: "Version \(getCurrentVersion() ?? "1.0")",
+            action: #selector(openReleasePage),
+            keyEquivalent: ""
+        )
+        versionItem.tag = 100
+        versionItem.target = self
+        menu.addItem(versionItem)
+
+        // Manual update check
+        let updateCheckItem = NSMenuItem(
+            title: "Check for Updates",
+            action: #selector(manualUpdateCheck),
+            keyEquivalent: ""
+        )
+        updateCheckItem.target = self
+        menu.addItem(updateCheckItem)
 
         menu.addItem(NSMenuItem.separator())
 
@@ -234,7 +264,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         image.lockFocus()
 
-        guard let context = NSGraphicsContext.current?.cgContext else {
+        guard NSGraphicsContext.current?.cgContext != nil else {
             image.unlockFocus()
             return image
         }
@@ -417,6 +447,107 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         timer?.invalidate()
+        updateCheckTimer?.invalidate()
+    }
+
+    private func checkForUpdatesOnLaunch() {
+        // Throttle: only check if last check > 1 hour ago
+        if let lastCheck = lastUpdateCheckTime,
+           Date().timeIntervalSince(lastCheck) < 3600 {
+            return
+        }
+        performUpdateCheck()
+    }
+
+    private func startUpdateCheckTimer() {
+        updateCheckTimer = Timer.scheduledTimer(
+            withTimeInterval: updateCheckInterval,
+            repeats: true
+        ) { [weak self] _ in
+            self?.performUpdateCheck()
+        }
+    }
+
+    private func performUpdateCheck() {
+        guard let version = getCurrentVersion() else { return }
+
+        UpdateChecker.checkForUpdates(currentVersion: version) { [weak self] updateInfo in
+            DispatchQueue.main.async {
+                self?.lastUpdateInfo = updateInfo
+                self?.lastUpdateCheckTime = Date()
+                self?.updateVersionMenuItem()
+            }
+        }
+    }
+
+    @objc private func manualUpdateCheck() {
+        guard let version = getCurrentVersion() else { return }
+
+        UpdateChecker.checkForUpdates(currentVersion: version) { [weak self] updateInfo in
+            DispatchQueue.main.async {
+                self?.lastUpdateInfo = updateInfo
+                self?.lastUpdateCheckTime = Date()
+                self?.updateVersionMenuItem()
+
+                // Show notification about update status
+                let alert = NSAlert()
+                if let info = updateInfo {
+                    if info.isUpdateAvailable {
+                        alert.messageText = "Update Available"
+                        alert.informativeText = "Version \(info.latestVersion) is available. Click OK to view the release."
+                        alert.alertStyle = .informational
+                        alert.addButton(withTitle: "OK")
+                        alert.addButton(withTitle: "Cancel")
+
+                        if alert.runModal() == .alertFirstButtonReturn {
+                            if let url = URL(string: info.releaseURL) {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
+                    } else {
+                        alert.messageText = "You're Up to Date"
+                        alert.informativeText = "You have the latest version (\(version)) installed."
+                        alert.alertStyle = .informational
+                        alert.addButton(withTitle: "OK")
+                        alert.runModal()
+                    }
+                } else {
+                    alert.messageText = "Update Check Failed"
+                    alert.informativeText = "Unable to check for updates. Please check your internet connection and try again."
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            }
+        }
+    }
+
+    @objc private func openReleasePage() {
+        let urlString = lastUpdateInfo?.releaseURL ?? "https://github.com/dvdpearson/IsItMe/releases"
+        if let url = URL(string: urlString) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    private func getCurrentVersion() -> String? {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+    }
+
+    private func updateVersionMenuItem() {
+        guard let menu = statusItem.menu else { return }
+
+        let versionItem = menu.item(withTag: 100)
+        guard let version = getCurrentVersion() else { return }
+
+        if let updateInfo = lastUpdateInfo {
+            if updateInfo.isUpdateAvailable {
+                versionItem?.title = "Update Available (v\(updateInfo.latestVersion))"
+            } else {
+                versionItem?.title = "Version \(version) (up to date)"
+            }
+        } else {
+            versionItem?.title = "Version \(version)"
+        }
     }
 }
 
