@@ -13,8 +13,11 @@ class UpdateChecker {
     }
 
     static func checkForUpdates(currentVersion: String, completion: @escaping (UpdateInfo?) -> Void) {
+        logDebug("Checking for updates (current version: \(currentVersion))")
+
         DispatchQueue.global(qos: .utility).async {
             guard let url = URL(string: "https://api.github.com/repos/dvdpearson/IsItMe/releases/latest") else {
+                logError("Invalid update check URL")
                 completion(nil)
                 return
             }
@@ -25,15 +28,28 @@ class UpdateChecker {
             request.cachePolicy = .reloadIgnoringLocalCacheData
 
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                guard error == nil,
-                      let data = data,
-                      let release = try? JSONDecoder().decode(Release.self, from: data) else {
+                if let error = error {
+                    logWarning("Update check failed: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+
+                guard let data = data else {
+                    logWarning("Update check returned no data")
+                    completion(nil)
+                    return
+                }
+
+                guard let release = try? JSONDecoder().decode(Release.self, from: data) else {
+                    logWarning("Failed to decode update check response")
                     completion(nil)
                     return
                 }
 
                 let latestVersion = release.tag_name.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
                 let isUpdateAvailable = compareVersions(current: currentVersion, latest: latestVersion)
+
+                logInfo("Update check complete - latest: \(latestVersion), update available: \(isUpdateAvailable)")
 
                 let updateInfo = UpdateInfo(
                     latestVersion: latestVersion,
