@@ -25,12 +25,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set up crash handlers first
+        Logger.shared.setupCrashHandler()
+
+        logInfo("Application launched - version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown")")
+        Logger.shared.logMemoryUsage()
+
         // Enable launch at login by default on first run
         if !UserDefaults.standard.bool(forKey: "HasLaunchedBefore") {
+            logInfo("First launch - enabling launch at login")
             UserDefaults.standard.set(true, forKey: "HasLaunchedBefore")
             setLaunchAtLogin(enabled: true)
         }
 
+        logDebug("Setting up menu bar status item")
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         if let button = statusItem.button {
@@ -38,10 +46,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.wantsLayer = true
         }
 
+        logDebug("Ping target: \(pingTarget), interval: \(pingInterval)s")
+
         createMenu()
         startPinging()
         checkForUpdatesOnLaunch()
         startUpdateCheckTimer()
+
+        // Log memory every 5 minutes to track growth
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Logger.shared.logMemoryUsage()
+            if let historyCount = self?.latencyHistory.count {
+                logDebug("Latency history size: \(historyCount) entries")
+            }
+        }
     }
 
     private func createMenu() {
@@ -151,6 +169,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
+        let viewLogItem = NSMenuItem(title: "View Log File", action: #selector(openLogFile), keyEquivalent: "")
+        menu.addItem(viewLogItem)
+
+        let revealLogItem = NSMenuItem(title: "Reveal Log in Finder", action: #selector(revealLogFile), keyEquivalent: "")
+        menu.addItem(revealLogItem)
+
+        menu.addItem(NSMenuItem.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
         menu.addItem(quitItem)
 
@@ -158,6 +184,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func startPinging() {
+        logInfo("Starting ping timer with interval: \(pingInterval)s, target: \(pingTarget)")
         updateLatency()
 
         timer = Timer.scheduledTimer(withTimeInterval: pingInterval, repeats: true) { [weak self] _ in
@@ -166,6 +193,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func restartTimer() {
+        logInfo("Restarting timer")
         timer?.invalidate()
         startPinging()
     }
@@ -191,6 +219,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateUI() {
         let hasConnection = stats.current != nil
+        logDebug("Updating UI - hasConnection: \(hasConnection), current: \(stats.current?.description ?? "nil")")
 
         // Always create sparkline background
         let sparklineImage = createSparklineImage(width: 48, height: 22, hasConnection: hasConnection)
@@ -265,6 +294,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         image.lockFocus()
 
         guard NSGraphicsContext.current?.cgContext != nil else {
+            logWarning("Failed to get graphics context for sparkline image")
             image.unlockFocus()
             return image
         }
@@ -282,8 +312,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return image
         }
 
-        let maxLatency = max(validLatencies.max() ?? 100, 100) // At least 100ms scale
-        let minLatency = validLatencies.min() ?? 0
+        var maxLatency = max(validLatencies.max() ?? 100, 100) // At least 100ms scale
+        var minLatency = validLatencies.min() ?? 0
+
+        // Ensure min and max are different to avoid division by zero (which causes NaN)
+        if maxLatency == minLatency {
+            // Create a small range around the value
+            let midpoint = maxLatency
+            minLatency = midpoint - 10
+            maxLatency = midpoint + 10
+        }
 
         // Choose color based on connection status - brighter for dark background
         let lineColor = hasConnection ? NSColor.lightGray.withAlphaComponent(0.7) : NSColor.white.withAlphaComponent(0.5)
@@ -351,6 +389,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         composite.lockFocus()
 
+        guard NSGraphicsContext.current?.cgContext != nil else {
+            logError("Failed to get graphics context for composite image")
+            composite.unlockFocus()
+            return nil
+        }
+
         // Draw semi-transparent dark background for better visibility
         if hasConnection {
             NSColor.black.withAlphaComponent(0.65).setFill()
@@ -381,6 +425,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func changePingTarget(_ sender: NSMenuItem) {
         guard let target = sender.representedObject as? String else { return }
+        logInfo("Changing ping target from \(pingTarget) to \(target)")
         pingTarget = target
         stats.reset()
         latencyHistory.removeAll()
@@ -417,6 +462,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func changePingInterval(_ sender: NSMenuItem) {
         guard let interval = sender.representedObject as? TimeInterval else { return }
+        logInfo("Changing ping interval from \(pingInterval)s to \(interval)s")
         pingInterval = interval
         latencyHistory.removeAll()
         createMenu() // Recreate menu to update checkmarks
@@ -424,7 +470,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func quit() {
+        logInfo("Application quitting")
+        Logger.shared.flush()
         NSApplication.shared.terminate(nil)
+    }
+
+    @objc private func openLogFile() {
+        logInfo("Opening log file in default text editor")
+        Logger.shared.openLogFile()
+    }
+
+    @objc private func revealLogFile() {
+        logInfo("Revealing log file in Finder")
+        Logger.shared.revealLogFile()
     }
 
     @objc private func toggleAutoStart() {
